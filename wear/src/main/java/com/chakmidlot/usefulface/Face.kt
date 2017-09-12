@@ -57,7 +57,7 @@ class Face : CanvasWatchFaceService() {
             val engine = mWeakReference.get()
             if (engine != null) {
                 when (msg.what) {
-                    MSG_UPDATE_TIME -> engine!!.handleUpdateTimeMessage()
+                    MSG_UPDATE_TIME -> engine.handleUpdateTimeMessage()
                 }
             }
         }
@@ -76,8 +76,8 @@ class Face : CanvasWatchFaceService() {
                 invalidate()
             }
         }
-        private var mXOffset: Float = 0.toFloat()
-        private var mYOffset: Float = 0.toFloat()
+        private var mXOffset: Float = 0f
+        private var mYOffset: Float = 0f
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -89,16 +89,12 @@ class Face : CanvasWatchFaceService() {
             super.onCreate(holder)
 
             setWatchFaceStyle(WatchFaceStyle.Builder(this@Face)
-                    .setCardPeekMode(WatchFaceStyle.PEEK_MODE_VARIABLE)
-                    .setBackgroundVisibility(WatchFaceStyle.BACKGROUND_VISIBILITY_INTERRUPTIVE)
-                    .setShowSystemUiTime(false)
-                    .setAcceptsTapEvents(true)
                     .build())
-            val resources = this@Face.getResources()
+            val resources = this@Face.resources
             mYOffset = resources.getDimension(R.dimen.digital_y_offset)
 
             mBackgroundPaint = Paint()
-            mBackgroundPaint.setColor(resources.getColor(R.color.background))
+            mBackgroundPaint.color = resources.getColor(R.color.background)
 
             mTextPaint = Paint()
             mTextPaint = createTextPaint(resources.getColor(R.color.digital_text))
@@ -106,27 +102,27 @@ class Face : CanvasWatchFaceService() {
             mCalendar = Calendar.getInstance()
         }
 
-        public override fun onDestroy() {
+        override fun onDestroy() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME)
             super.onDestroy()
         }
 
         private fun createTextPaint(textColor: Int): Paint {
             val paint = Paint()
-            paint.setColor(textColor)
-            paint.setTypeface(NORMAL_TYPEFACE)
-            paint.setAntiAlias(true)
+            paint.color = textColor
+            paint.typeface = NORMAL_TYPEFACE
+            paint.isAntiAlias = true
             return paint
         }
 
-        public override fun onVisibilityChanged(visible: Boolean) {
+        override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
 
             if (visible) {
                 registerReceiver()
 
                 // Update time zone in case it changed while we weren't visible.
-                mCalendar.setTimeZone(TimeZone.getDefault())
+                mCalendar.timeZone = TimeZone.getDefault()
                 invalidate()
             } else {
                 unregisterReceiver()
@@ -154,12 +150,12 @@ class Face : CanvasWatchFaceService() {
             this@Face.unregisterReceiver(mTimeZoneReceiver)
         }
 
-        public override fun onApplyWindowInsets(insets: WindowInsets) {
+        override fun onApplyWindowInsets(insets: WindowInsets) {
             super.onApplyWindowInsets(insets)
 
             // Load resources that have alternate values for round watches.
-            val resources = this@Face.getResources()
-            val isRound = insets.isRound()
+            val resources = this@Face.resources
+            val isRound = insets.isRound
             mXOffset = resources.getDimension(if (isRound)
                 R.dimen.digital_x_offset_round
             else
@@ -169,25 +165,25 @@ class Face : CanvasWatchFaceService() {
             else
                 R.dimen.digital_text_size)
 
-            mTextPaint.setTextSize(textSize)
+            mTextPaint.textSize = textSize
         }
 
-        public override fun onPropertiesChanged(properties: Bundle?) {
+        override fun onPropertiesChanged(properties: Bundle?) {
             super.onPropertiesChanged(properties)
             mLowBitAmbient = properties!!.getBoolean(WatchFaceService.PROPERTY_LOW_BIT_AMBIENT, false)
         }
 
-        public override fun onTimeTick() {
+        override fun onTimeTick() {
             super.onTimeTick()
             invalidate()
         }
 
-        public override fun onAmbientModeChanged(inAmbientMode: Boolean) {
+        override fun onAmbientModeChanged(inAmbientMode: Boolean) {
             super.onAmbientModeChanged(inAmbientMode)
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode
                 if (mLowBitAmbient) {
-                    mTextPaint.setAntiAlias(!inAmbientMode)
+                    mTextPaint.isAntiAlias = !inAmbientMode
                 }
                 invalidate()
             }
@@ -201,7 +197,7 @@ class Face : CanvasWatchFaceService() {
          * Captures tap event (and tap type) and toggles the background color if the user finishes
          * a tap.
          */
-        public override fun onTapCommand(tapType: Int, x: Int, y: Int, eventTime: Long) {
+        override fun onTapCommand(tapType: Int, x: Int, y: Int, eventTime: Long) {
             when (tapType) {
                 WatchFaceService.TAP_TYPE_TOUCH -> {
                 }
@@ -210,24 +206,25 @@ class Face : CanvasWatchFaceService() {
                 WatchFaceService.TAP_TYPE_TAP ->
                     // The user has completed the tap gesture.
                     // TODO: Add code to handle the tap gesture.
-                    Toast.makeText(getApplicationContext(), R.string.message, Toast.LENGTH_SHORT)
+                    Toast.makeText(applicationContext, R.string.message, Toast.LENGTH_SHORT)
                             .show()
             }// The user has started touching the screen.
             // The user has started a different gesture or otherwise cancelled the tap.
             invalidate()
         }
 
-        public override fun onDraw(canvas: Canvas?, bounds: Rect?) {
+        override fun onDraw(canvas: Canvas, bounds: Rect) {
             // Draw the background.
-            if (isInAmbientMode()) {
-                canvas!!.drawColor(Color.BLUE)
+            if (isInAmbientMode) {
+                canvas.drawColor(Color.BLUE)
             } else {
-                canvas!!.drawRect(0f, 0f, bounds!!.width().toFloat(), bounds!!.height().toFloat(), mBackgroundPaint)
+                canvas.drawRect(0f, 0f,
+                        bounds.width().toFloat(), bounds.height().toFloat(), mBackgroundPaint)
             }
 
             // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
             val now = System.currentTimeMillis()
-            mCalendar.setTimeInMillis(now)
+            mCalendar.timeInMillis = now
 
             val text = if (mAmbient)
                 String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
@@ -235,7 +232,7 @@ class Face : CanvasWatchFaceService() {
             else
                 String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
                         mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND))
-            canvas!!.drawText(text, mXOffset, mYOffset, mTextPaint)
+            canvas.drawText(text, mXOffset, mYOffset, mTextPaint)
         }
 
         /**
@@ -254,7 +251,7 @@ class Face : CanvasWatchFaceService() {
          * only run when we're visible and in interactive mode.
          */
         private fun shouldTimerBeRunning(): Boolean {
-            return isVisible() && !isInAmbientMode()
+            return isVisible && !isInAmbientMode
         }
 
         /**
