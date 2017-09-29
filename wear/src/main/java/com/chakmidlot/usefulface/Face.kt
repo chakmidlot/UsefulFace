@@ -25,12 +25,14 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
+import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Message
 import android.support.wearable.watchface.CanvasWatchFaceService
 import android.support.wearable.watchface.WatchFaceService
 import android.support.wearable.watchface.WatchFaceStyle
+import android.util.Log
 import android.view.SurfaceHolder
 import android.view.WindowInsets
 import android.widget.Toast
@@ -67,7 +69,10 @@ class Face : CanvasWatchFaceService() {
         private val mUpdateTimeHandler: Handler = EngineHandler(this)
         private var mRegisteredTimeZoneReceiver = false
         private lateinit var mBackgroundPaint: Paint
-        private lateinit var mTextPaint: Paint
+        private lateinit var hoursPaint: Paint
+        private lateinit var secondsPaint: Paint
+        private lateinit var datePaint: Paint
+        private lateinit var battaryPaint: Paint
         private var mAmbient: Boolean = false
         private lateinit var mCalendar: Calendar
         private val mTimeZoneReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -78,6 +83,16 @@ class Face : CanvasWatchFaceService() {
         }
         private var mXOffset: Float = 0f
         private var mYOffset: Float = 0f
+
+        private val dayOfWeek = hashMapOf(
+                1 to "SU",
+                2 to "MO",
+                3 to "TU",
+                4 to "WE",
+                5 to "TH",
+                6 to "FR",
+                7 to "SA"
+        )
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -96,22 +111,26 @@ class Face : CanvasWatchFaceService() {
             mBackgroundPaint = Paint()
             mBackgroundPaint.color = resources.getColor(R.color.background)
 
-            mTextPaint = Paint()
-            mTextPaint = createTextPaint(resources.getColor(R.color.digital_text))
-
             mCalendar = Calendar.getInstance()
+
+            hoursPaint = createTextPaint(Color.WHITE, 60f)
+            secondsPaint = createTextPaint(Color.parseColor("#AAAAAA"), 40f)
+            datePaint = createTextPaint(Color.WHITE, 30f)
+            battaryPaint = createTextPaint(Color.WHITE, 17f)
         }
 
         override fun onDestroy() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME)
+            Log.d("UsefulFace", "Destroy")
             super.onDestroy()
         }
 
-        private fun createTextPaint(textColor: Int): Paint {
+        private fun createTextPaint(textColor: Int, textSize: Float): Paint {
             val paint = Paint()
             paint.color = textColor
             paint.typeface = NORMAL_TYPEFACE
             paint.isAntiAlias = true
+            paint.textSize = textSize
             return paint
         }
 
@@ -164,8 +183,6 @@ class Face : CanvasWatchFaceService() {
                 R.dimen.digital_text_size_round
             else
                 R.dimen.digital_text_size)
-
-            mTextPaint.textSize = textSize
         }
 
         override fun onPropertiesChanged(properties: Bundle?) {
@@ -182,9 +199,6 @@ class Face : CanvasWatchFaceService() {
             super.onAmbientModeChanged(inAmbientMode)
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode
-                if (mLowBitAmbient) {
-                    mTextPaint.isAntiAlias = !inAmbientMode
-                }
                 invalidate()
             }
 
@@ -220,19 +234,21 @@ class Face : CanvasWatchFaceService() {
             } else {
                 canvas.drawRect(0f, 0f,
                         bounds.width().toFloat(), bounds.height().toFloat(), mBackgroundPaint)
+                drawCalendar(canvas)
+                drawCharge(canvas)
             }
 
-            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
-            val now = System.currentTimeMillis()
-            mCalendar.timeInMillis = now
-
-            val text = if (mAmbient)
-                String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-                        mCalendar.get(Calendar.MINUTE))
-            else
-                String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-                        mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND))
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint)
+//            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
+//            val now = System.currentTimeMillis()
+//            mCalendar.timeInMillis = now
+//
+//            val text = if (mAmbient)
+//                String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
+//                        mCalendar.get(Calendar.MINUTE))
+//            else
+//                String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
+//                        mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND))
+//            canvas.drawText(text, mXOffset, mYOffset, mTextPaint)
         }
 
         /**
@@ -265,6 +281,48 @@ class Face : CanvasWatchFaceService() {
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs)
             }
         }
+
+        fun drawCalendar(canvas: Canvas) {
+            val now = System.currentTimeMillis()
+            mCalendar.timeInMillis = now
+
+            var text = String.format("%02d:%02d", mCalendar.get(Calendar.HOUR_OF_DAY),
+                    mCalendar.get(Calendar.MINUTE))
+            canvas.drawText(text, 60f, 80f, hoursPaint)
+
+            text = String.format(":%02d", mCalendar.get(Calendar.SECOND))
+            canvas.drawText(text, 210f, 80f, secondsPaint)
+
+            text = String.format("%04d-%02d-%02d", mCalendar.get(Calendar.YEAR),
+                    mCalendar.get(Calendar.MONTH) + 1, mCalendar.get(Calendar.DAY_OF_MONTH))
+            canvas.drawText(text, 60f, 120f, datePaint)
+
+            text = dayOfWeek[mCalendar.get(Calendar.DAY_OF_WEEK)]!!
+            canvas.drawText(text, 225f, 120f, datePaint)
+        }
+
+        fun drawCharge(canvas: Canvas) {
+
+            val batteryIntent = registerReceiver(
+                    null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+
+            val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+
+            val wearableCharge = if (level != -1)
+                String.format("%3d%%", level)
+            else
+                "??%"
+
+            canvas.drawText(wearableCharge, 8f, 120f, battaryPaint)
+
+            val mobileCharge = if (level == -1)
+                String.format("%3d%%", level)
+            else
+                "??%"
+
+            canvas.drawText(mobileCharge, 275f, 120f, battaryPaint)
+        }
+
     }
 
     companion object {
