@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Useful Face</string>
+    <string name="title_activity_useful_face_config">UsefulFaceConfigActivity</string>
+    <string name="title_activity_main">MainActivity</string>
 </resources>

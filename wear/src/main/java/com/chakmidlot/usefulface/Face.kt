@@ -36,6 +36,11 @@ import android.util.Log
 import android.view.SurfaceHolder
 import android.view.WindowInsets
 import android.widget.Toast
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.api.GoogleApiClient
+import com.google.android.gms.wearable.PutDataMapRequest
+import com.google.android.gms.wearable.PutDataRequest
+import com.google.android.gms.wearable.Wearable
 
 import java.lang.ref.WeakReference
 import java.util.Calendar
@@ -46,7 +51,19 @@ import java.util.concurrent.TimeUnit
  * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
-class Face : CanvasWatchFaceService() {
+class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener {
+    override fun onConnectionFailed(p0: ConnectionResult) {
+        Log.w("UsefulFace", "Connection Failed")
+    }
+
+    override fun onConnectionSuspended(p0: Int) {
+        Log.w("UsefulFace", "Connection Suspended")
+    }
+
+    override fun onConnected(p0: Bundle?) {
+        Log.d("UsefulFace", "API Client connected")
+    }
 
     override fun onCreateEngine(): Engine {
         return Engine()
@@ -73,6 +90,9 @@ class Face : CanvasWatchFaceService() {
         private lateinit var secondsPaint: Paint
         private lateinit var datePaint: Paint
         private lateinit var battaryPaint: Paint
+
+        private lateinit var dataPaint: Paint
+
         private var mAmbient: Boolean = false
         private lateinit var mCalendar: Calendar
         private val mTimeZoneReceiver: BroadcastReceiver = object : BroadcastReceiver() {
@@ -117,6 +137,7 @@ class Face : CanvasWatchFaceService() {
             secondsPaint = createTextPaint(Color.parseColor("#AAAAAA"), 40f)
             datePaint = createTextPaint(Color.WHITE, 30f)
             battaryPaint = createTextPaint(Color.WHITE, 17f)
+            dataPaint = createTextPaint(Color.WHITE, 17f, true)
         }
 
         override fun onDestroy() {
@@ -125,12 +146,15 @@ class Face : CanvasWatchFaceService() {
             super.onDestroy()
         }
 
-        private fun createTextPaint(textColor: Int, textSize: Float): Paint {
+        private fun createTextPaint(textColor: Int, textSize: Float, monoSpace: Boolean=false): Paint {
             val paint = Paint()
             paint.color = textColor
             paint.typeface = NORMAL_TYPEFACE
             paint.isAntiAlias = true
             paint.textSize = textSize
+            if (monoSpace) {
+                paint.setTypeface(Typeface.MONOSPACE)
+            }
             return paint
         }
 
@@ -232,10 +256,12 @@ class Face : CanvasWatchFaceService() {
             if (isInAmbientMode) {
                 canvas.drawColor(Color.BLUE)
             } else {
+//                PhoneBatteryClient.requestCharge(this@Face)
                 canvas.drawRect(0f, 0f,
                         bounds.width().toFloat(), bounds.height().toFloat(), mBackgroundPaint)
                 drawCalendar(canvas)
                 drawCharge(canvas)
+                drawBank(canvas)
             }
 
 //            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
@@ -315,12 +341,26 @@ class Face : CanvasWatchFaceService() {
 
             canvas.drawText(wearableCharge, 8f, 120f, battaryPaint)
 
-            val mobileCharge = if (level == -1)
-                String.format("%3d%%", level)
-            else
-                "??%"
+            val settings = getSharedPreferences("balance", 0)
+            val mobile_battery = settings.getString("mobile", "??") + "%"
 
-            canvas.drawText(mobileCharge, 275f, 120f, battaryPaint)
+            canvas.drawText(mobile_battery, 275f, 120f, battaryPaint)
+        }
+
+        fun drawBank(canvas: Canvas) {
+            val settings = getSharedPreferences("balance", 0)
+
+            val rate = settings.getString("rate", " 2.34/$")
+            canvas.drawText(rate, 0f, 150f, dataPaint)
+
+            val belinvest = settings.getString("belinvest_2", "----.--") + "p"
+            canvas.drawText(belinvest, 0f, 175f, dataPaint)
+
+            val prior = settings.getString("prior", "----.--") + "p"
+            canvas.drawText(prior, 0f, 195f, dataPaint)
+
+            val prior_internet = settings.getString("prior_internet", "----.--") + "$"
+            canvas.drawText(prior_internet, 0f, 215f, dataPaint)
         }
 
     }
