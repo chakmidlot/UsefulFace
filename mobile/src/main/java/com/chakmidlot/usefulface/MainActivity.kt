@@ -18,11 +18,10 @@ import android.net.Uri
 import android.os.BatteryManager
 import android.widget.Toast
 import com.chakmidlot.usefulface.periodic.BatteryService
-import com.google.android.gms.wearable.MessageApi
-import com.google.android.gms.wearable.MessageEvent
+import com.chakmidlot.usefulface.periodic.CurrencyRate
 
 
-class MainActivity : AppCompatActivity(), MessageApi.MessageListener {
+class MainActivity : AppCompatActivity() {
 
     private lateinit var mJobScheduler: JobScheduler
 
@@ -123,9 +122,21 @@ class MainActivity : AppCompatActivity(), MessageApi.MessageListener {
     private fun schedule() {
         Log.d("UsefulFace", "scheduling")
         val builder = JobInfo.Builder(1,
-                ComponentName(packageName, BatteryService::class.java!!.getName()))
+                ComponentName(packageName, BatteryService::class.java!!.name))
 
-        builder.setPeriodic(5 * 60 * 1000)
+        builder.setPeriodic(600_000)
+
+        if (mJobScheduler.schedule(builder.build()) != JobScheduler.RESULT_SUCCESS) {
+            Log.d("UsefulFace", "failed scheduling")
+        }
+    }
+
+    private fun scheduleRate() {
+        Log.d("UsefulFace", "scheduling")
+        val builder = JobInfo.Builder(1,
+                ComponentName(packageName, CurrencyRate::class.java!!.name))
+
+        builder.setPeriodic(10 * 1000)
 
 
         if (mJobScheduler.schedule(builder.build()) != JobScheduler.RESULT_SUCCESS) {
@@ -136,11 +147,9 @@ class MainActivity : AppCompatActivity(), MessageApi.MessageListener {
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
         when (requestCode) {
             123 -> if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission Granted
                 readSmsBelinvest()
             }
             124 -> if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission Granted
                 Log.d("UsefulFace", "ReadingSMS")
             }
             else {
@@ -150,16 +159,6 @@ class MainActivity : AppCompatActivity(), MessageApi.MessageListener {
             }
             else -> super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
-    }
-
-    override fun onMessageReceived(messageEvent: MessageEvent) {
-        Log.d("UsefulFace", "Message received")
-//        if (messageEvent.path == "/phone_charge") {
-//            val startIntent = Intent(this, MainActivity::class.java)
-//            startIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//            startIntent.putExtra("VOICE_DATA", messageEvent.data)
-//            startActivity(startIntent)
-//        }
     }
 
 }

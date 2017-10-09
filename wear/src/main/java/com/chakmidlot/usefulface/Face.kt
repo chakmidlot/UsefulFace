@@ -25,7 +25,6 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.Typeface
-import android.os.BatteryManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Message
@@ -38,31 +37,27 @@ import android.view.WindowInsets
 import android.widget.Toast
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
-import com.google.android.gms.wearable.PutDataMapRequest
-import com.google.android.gms.wearable.PutDataRequest
-import com.google.android.gms.wearable.Wearable
 
 import java.lang.ref.WeakReference
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.concurrent.TimeUnit
 
-/**
- * Digital watch face with seconds. In ambient mode, the seconds aren't displayed. On devices with
- * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
- */
 class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
         GoogleApiClient.OnConnectionFailedListener {
+
+    private val TAG = "UsefulFace"
+
     override fun onConnectionFailed(p0: ConnectionResult) {
-        Log.w("UsefulFace", "Connection Failed")
+        Log.w(TAG, "Connection Failed")
     }
 
     override fun onConnectionSuspended(p0: Int) {
-        Log.w("UsefulFace", "Connection Suspended")
+        Log.w(TAG, "Connection Suspended")
     }
 
     override fun onConnected(p0: Bundle?) {
-        Log.d("UsefulFace", "API Client connected")
+        Log.d(TAG, "API Client connected")
     }
 
     override fun onCreateEngine(): Engine {
@@ -85,13 +80,8 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
     inner class Engine : CanvasWatchFaceService.Engine() {
         private val mUpdateTimeHandler: Handler = EngineHandler(this)
         private var mRegisteredTimeZoneReceiver = false
-        private lateinit var mBackgroundPaint: Paint
-        private lateinit var hoursPaint: Paint
-        private lateinit var secondsPaint: Paint
-        private lateinit var datePaint: Paint
-        private lateinit var battaryPaint: Paint
-
-        private lateinit var dataPaint: Paint
+        private lateinit var data: Data
+        private lateinit var drawing: Drawing
 
         private var mAmbient: Boolean = false
         private lateinit var mCalendar: Calendar
@@ -101,18 +91,6 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
                 invalidate()
             }
         }
-        private var mXOffset: Float = 0f
-        private var mYOffset: Float = 0f
-
-        private val dayOfWeek = hashMapOf(
-                1 to "SU",
-                2 to "MO",
-                3 to "TU",
-                4 to "WE",
-                5 to "TH",
-                6 to "FR",
-                7 to "SA"
-        )
 
         /**
          * Whether the display supports fewer bits for each color in ambient mode. When true, we
@@ -120,42 +98,23 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
          */
         private var mLowBitAmbient: Boolean = false
 
+        private lateinit var drawingCase: HashMap<String, Paint>
+
         override fun onCreate(holder: SurfaceHolder?) {
             super.onCreate(holder)
 
+            mCalendar = Calendar.getInstance()
+            data = Data(this@Face)
+            drawing = Drawing()
+
             setWatchFaceStyle(WatchFaceStyle.Builder(this@Face)
                     .build())
-            val resources = this@Face.resources
-            mYOffset = resources.getDimension(R.dimen.digital_y_offset)
-
-            mBackgroundPaint = Paint()
-            mBackgroundPaint.color = resources.getColor(R.color.background)
-
-            mCalendar = Calendar.getInstance()
-
-            hoursPaint = createTextPaint(Color.WHITE, 60f)
-            secondsPaint = createTextPaint(Color.parseColor("#AAAAAA"), 40f)
-            datePaint = createTextPaint(Color.WHITE, 30f)
-            battaryPaint = createTextPaint(Color.WHITE, 17f)
-            dataPaint = createTextPaint(Color.WHITE, 17f, true)
         }
 
         override fun onDestroy() {
             mUpdateTimeHandler.removeMessages(MSG_UPDATE_TIME)
             Log.d("UsefulFace", "Destroy")
             super.onDestroy()
-        }
-
-        private fun createTextPaint(textColor: Int, textSize: Float, monoSpace: Boolean=false): Paint {
-            val paint = Paint()
-            paint.color = textColor
-            paint.typeface = NORMAL_TYPEFACE
-            paint.isAntiAlias = true
-            paint.textSize = textSize
-            if (monoSpace) {
-                paint.setTypeface(Typeface.MONOSPACE)
-            }
-            return paint
         }
 
         override fun onVisibilityChanged(visible: Boolean) {
@@ -197,16 +156,16 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
             super.onApplyWindowInsets(insets)
 
             // Load resources that have alternate values for round watches.
-            val resources = this@Face.resources
-            val isRound = insets.isRound
-            mXOffset = resources.getDimension(if (isRound)
-                R.dimen.digital_x_offset_round
-            else
-                R.dimen.digital_x_offset)
-            val textSize = resources.getDimension(if (isRound)
-                R.dimen.digital_text_size_round
-            else
-                R.dimen.digital_text_size)
+//            val resources = this@Face.resources
+//            val isRound = insets.isRound
+//            mXOffset = resources.getDimension(if (isRound)
+//                R.dimen.digital_x_offset_round
+//            else
+//                R.dimen.digital_x_offset)
+//            val textSize = resources.getDimension(if (isRound)
+//                R.dimen.digital_text_size_round
+//            else
+//                R.dimen.digital_text_size)
         }
 
         override fun onPropertiesChanged(properties: Bundle?) {
@@ -252,29 +211,13 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
         }
 
         override fun onDraw(canvas: Canvas, bounds: Rect) {
-            // Draw the background.
+            val settings = getSharedPreferences("balance", 0)
             if (isInAmbientMode) {
                 canvas.drawColor(Color.BLUE)
             } else {
-//                PhoneBatteryClient.requestCharge(this@Face)
-                canvas.drawRect(0f, 0f,
-                        bounds.width().toFloat(), bounds.height().toFloat(), mBackgroundPaint)
-                drawCalendar(canvas)
-                drawCharge(canvas)
-                drawBank(canvas)
+                val drawing_data = data.prepare()
+                drawing.draw(canvas, bounds, drawing_data)
             }
-
-//            // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
-//            val now = System.currentTimeMillis()
-//            mCalendar.timeInMillis = now
-//
-//            val text = if (mAmbient)
-//                String.format("%d:%02d", mCalendar.get(Calendar.HOUR),
-//                        mCalendar.get(Calendar.MINUTE))
-//            else
-//                String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR),
-//                        mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND))
-//            canvas.drawText(text, mXOffset, mYOffset, mTextPaint)
         }
 
         /**
@@ -307,67 +250,9 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs)
             }
         }
-
-        fun drawCalendar(canvas: Canvas) {
-            val now = System.currentTimeMillis()
-            mCalendar.timeInMillis = now
-
-            var text = String.format("%02d:%02d", mCalendar.get(Calendar.HOUR_OF_DAY),
-                    mCalendar.get(Calendar.MINUTE))
-            canvas.drawText(text, 60f, 80f, hoursPaint)
-
-            text = String.format(":%02d", mCalendar.get(Calendar.SECOND))
-            canvas.drawText(text, 210f, 80f, secondsPaint)
-
-            text = String.format("%04d-%02d-%02d", mCalendar.get(Calendar.YEAR),
-                    mCalendar.get(Calendar.MONTH) + 1, mCalendar.get(Calendar.DAY_OF_MONTH))
-            canvas.drawText(text, 60f, 120f, datePaint)
-
-            text = dayOfWeek[mCalendar.get(Calendar.DAY_OF_WEEK)]!!
-            canvas.drawText(text, 225f, 120f, datePaint)
-        }
-
-        fun drawCharge(canvas: Canvas) {
-
-            val batteryIntent = registerReceiver(
-                    null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-
-            val level = batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-
-            val wearableCharge = if (level != -1)
-                String.format("%3d%%", level)
-            else
-                "??%"
-
-            canvas.drawText(wearableCharge, 8f, 120f, battaryPaint)
-
-            val settings = getSharedPreferences("balance", 0)
-            val mobile_battery = settings.getString("mobile", "??") + "%"
-
-            canvas.drawText(mobile_battery, 275f, 120f, battaryPaint)
-        }
-
-        fun drawBank(canvas: Canvas) {
-            val settings = getSharedPreferences("balance", 0)
-
-            val rate = settings.getString("rate", " 2.34/$")
-            canvas.drawText(rate, 0f, 150f, dataPaint)
-
-            val belinvest = settings.getString("belinvest_2", "----.--") + "p"
-            canvas.drawText(belinvest, 0f, 175f, dataPaint)
-
-            val prior = settings.getString("prior", "----.--") + "p"
-            canvas.drawText(prior, 0f, 195f, dataPaint)
-
-            val prior_internet = settings.getString("prior_internet", "----.--") + "$"
-            canvas.drawText(prior_internet, 0f, 215f, dataPaint)
-        }
-
     }
 
     companion object {
-        private val NORMAL_TYPEFACE = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-
         /**
          * Update rate in milliseconds for interactive mode. We update once a second since seconds are
          * displayed in interactive mode.

@@ -21,7 +21,6 @@ class BatteryService : JobService() {
         Data.save(this, "/balance/mobile", level.toString())
 
         jobFinished(msg.obj as JobParameters, true)
-        Log.d("UsefulFace", "periodic tasks")
         true
     })
 

@@ -10,6 +10,7 @@
     <uses-permission android:name="com.google.android.wearable.permission.RECEIVE_COMPLICATION_DATA" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -46,8 +47,12 @@
 
         <service android:name=".periodic.BatteryService"
             android:permission="android.permission.BIND_JOB_SERVICE" >
-
         </service>
+
+        <!--<service android:name=".periodic.CurrencyRate"-->
+            <!--android:permission="android.permission.BIND_JOB_SERVICE" >-->
+        <!--</service>-->
+
     </application>
 
 </manifest>

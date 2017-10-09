@@ -32,7 +32,7 @@ object SmsParser {
     }
 
     fun prior(body: String): Pair<String, String> {
-        val regex = Regex("Priorbank\\. Karta \\d\\*{3}(\\d{4}).*Dostupno:(.*?)\\.")
+        val regex = Regex("Priorbank.*\\d\\*{3}(\\d{4}).*Dostupno:(.*?)\\.")
         val match = regex.find(body)
         if (match != null) {
             val balance = match.groups[2]!!.value
