@@ -8,6 +8,7 @@ class Drawing {
     private val hoursPaint: Paint
     private val secondsPaint: Paint
     private val datePaint: Paint
+    private val dayOfWeekPaint: Paint
     private val batteryPaint: Paint
     private val dataPaint: Paint
 
@@ -15,6 +16,7 @@ class Drawing {
         hoursPaint = createTextPaint(Color.WHITE, 60f)
         secondsPaint = createTextPaint(Color.parseColor("#AAAAAA"), 40f)
         datePaint = createTextPaint(Color.WHITE, 30f)
+        dayOfWeekPaint = createTextPaint(Color.WHITE, 30f, true)
         batteryPaint = createTextPaint(Color.WHITE, 17f)
         dataPaint = createTextPaint(Color.WHITE, 17f, true)
     }
@@ -32,7 +34,7 @@ class Drawing {
         canvas.drawText(data["current_hour_minute"], 60f, 80f, hoursPaint)
         canvas.drawText(data["current_seconds"], 210f, 80f, secondsPaint)
         canvas.drawText(data["current_date"], 60f, 120f, datePaint)
-        canvas.drawText(data["current_day_of_week"], 225f, 120f, datePaint)
+        canvas.drawText(data["current_day_of_week"], 225f, 120f, dayOfWeekPaint)
     }
 
     fun drawCharge(canvas: Canvas, data: Map<String, String>) {
