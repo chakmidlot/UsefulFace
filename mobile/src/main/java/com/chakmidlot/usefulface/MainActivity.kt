@@ -19,6 +19,8 @@ import android.os.BatteryManager
 import android.widget.Toast
 import com.chakmidlot.usefulface.periodic.BatteryService
 import com.chakmidlot.usefulface.periodic.CurrencyRate
+import com.chakmidlot.usefulface.periodic.WeatherService
+import com.chakmidlot.usefulface.periodic.get_forecast
 
 
 class MainActivity : AppCompatActivity() {
@@ -60,6 +62,11 @@ class MainActivity : AppCompatActivity() {
 //        readSmsBelinvest()
 //        readSmsPrior()
 //        readSmsPriorInternet()
+        Thread(Runnable {
+            Log.d("UsefulFace", get_forecast())
+            Data.save(this, "/balance/weather", get_forecast())
+        }).start()
+
         schedule()
 
         fab.setOnClickListener { view ->
@@ -129,6 +136,13 @@ class MainActivity : AppCompatActivity() {
         if (mJobScheduler.schedule(builder.build()) != JobScheduler.RESULT_SUCCESS) {
             Log.d("UsefulFace", "failed scheduling")
         }
+
+        val scheduled = mJobScheduler.schedule(JobInfo.Builder(2, ComponentName(this, WeatherService::class.java))
+                .setPeriodic(3600_000)
+                .build())
+
+        Log.d("UsefulFace", "Weather scheduled: $scheduled")
+
     }
 
     private fun scheduleRate() {

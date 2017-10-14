@@ -41,6 +41,7 @@ object SmsParser {
             return if (card == PRIOR_CARD) {
                 val balance = (match.groups[2]!!.value
                         .replace(" ", "")
+                        .replace(",", "")
                         .toInt() - 1500).toString()
                 Pair("prior_main", balance)
             }

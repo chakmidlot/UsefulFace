@@ -24,7 +24,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Rect
-import android.graphics.Typeface
 import android.os.Bundle
 import android.os.Handler
 import android.os.Message
@@ -108,6 +107,7 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
             drawing = Drawing()
 
             setWatchFaceStyle(WatchFaceStyle.Builder(this@Face)
+                    .setAcceptsTapEvents(true)
                     .build())
         }
 
@@ -196,15 +196,12 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
          */
         override fun onTapCommand(tapType: Int, x: Int, y: Int, eventTime: Long) {
             when (tapType) {
-                WatchFaceService.TAP_TYPE_TOUCH -> {
-                }
-                WatchFaceService.TAP_TYPE_TOUCH_CANCEL -> {
-                }
+                WatchFaceService.TAP_TYPE_TOUCH -> { }
+                WatchFaceService.TAP_TYPE_TOUCH_CANCEL -> { }
                 WatchFaceService.TAP_TYPE_TAP ->
                     // The user has completed the tap gesture.
                     // TODO: Add code to handle the tap gesture.
-                    Toast.makeText(applicationContext, R.string.message, Toast.LENGTH_SHORT)
-                            .show()
+                    data.touchUpdate(x, y)
             }// The user has started touching the screen.
             // The user has started a different gesture or otherwise cancelled the tap.
             invalidate()

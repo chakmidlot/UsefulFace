@@ -49,9 +49,9 @@
             android:permission="android.permission.BIND_JOB_SERVICE" >
         </service>
 
-        <!--<service android:name=".periodic.CurrencyRate"-->
-            <!--android:permission="android.permission.BIND_JOB_SERVICE" >-->
-        <!--</service>-->
+        <service android:name=".periodic.WeatherService"
+            android:permission="android.permission.BIND_JOB_SERVICE" >
+        </service>
 
     </application>
 

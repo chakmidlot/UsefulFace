@@ -13,6 +13,7 @@ class DataItemsListener : WearableListenerService() {
     val PRIORBANK_INTERNET_PATH = "/balance/prior_internet"
     val PHONE_BATTERY = "/balance/mobile"
     val BANK_RATE = "/balance/rate"
+    val WEATHER = "/balance/weather"
 
     override fun onDataChanged(dataEvents: DataEventBuffer) {
         Log.d("UsefulFace", "onDataChanged: " + dataEvents)
@@ -37,6 +38,7 @@ class DataItemsListener : WearableListenerService() {
                         PRIORBANK_INTERNET_PATH -> editor.putString("prior_internet", balance.padStart(6))
                         PHONE_BATTERY -> editor.putString("mobile", balance)
                         BANK_RATE -> editor.putString("rate", balance)
+                        WEATHER -> editor.putString("weather", balance)
                     }
                     editor.apply()
                 }

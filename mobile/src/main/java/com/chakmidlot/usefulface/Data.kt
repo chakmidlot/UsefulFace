@@ -13,11 +13,11 @@ object Data {
     private val CONNECTION_TIME_OUT_MS = 300L
 
     fun save(context: Context, dataItem: String, value: String) {
-        val client = GoogleApiClient.Builder(context)
-                .addApi(Wearable.API)
-                .build()
-
         Thread(Runnable {
+            val client = GoogleApiClient.Builder(context)
+                    .addApi(Wearable.API)
+                    .build()
+
             client.blockingConnect(CONNECTION_TIME_OUT_MS, TimeUnit.MILLISECONDS)
             val result = Wearable.NodeApi.getConnectedNodes(client).await()
             val nodes = result.nodes
@@ -33,6 +33,5 @@ object Data {
             }
             client.disconnect()
         }).start()
-        client.disconnect()
     }
 }
