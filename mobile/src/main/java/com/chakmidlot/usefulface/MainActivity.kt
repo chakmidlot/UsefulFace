@@ -1,12 +1,10 @@
 package com.chakmidlot.usefulface
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.job.JobInfo
 import android.app.job.JobScheduler
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.os.Bundle
 import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
@@ -16,11 +14,16 @@ import kotlinx.android.synthetic.main.activity_main.*
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.BatteryManager
+import android.provider.CalendarContract
+import android.provider.CalendarContract.Events
+import android.provider.CalendarContract.Calendars
+import android.provider.CalendarContract.Instances
 import android.widget.Toast
 import com.chakmidlot.usefulface.periodic.BatteryService
 import com.chakmidlot.usefulface.periodic.CurrencyRate
 import com.chakmidlot.usefulface.periodic.WeatherService
 import com.chakmidlot.usefulface.periodic.get_forecast
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -52,6 +55,19 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        val calendarGranted = checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        Log.d("UsefulFace", "Can recieve: " + granted)
+        if (checkSelfPermission(Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED) {
+            Log.d("UsefulFace", "Ask sms")
+            requestPermissions(arrayOf(Manifest.permission.READ_CALENDAR),
+                    125)
+            return
+        }
+
+
+        val serviceIntent = Intent(this, DataLayerListenerService::class.java)
+        startService(serviceIntent)
+
         val batteryIntent = registerReceiver(
                 null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
 
@@ -62,6 +78,7 @@ class MainActivity : AppCompatActivity() {
 //        readSmsBelinvest()
 //        readSmsPrior()
 //        readSmsPriorInternet()
+        calendarData()
         Thread(Runnable {
             Log.d("UsefulFace", get_forecast())
             Data.save(this, "/balance/weather", get_forecast())
@@ -69,10 +86,43 @@ class MainActivity : AppCompatActivity() {
 
         schedule()
 
-        fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show()
+//        fab.setOnClick{ view ->
+//            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                    .setAction("Action", null).show()
+//        }
+
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun calendarData() {
+
+        val now = Calendar.getInstance()
+
+        val calendars = contentResolver.query(Calendars.CONTENT_URI,
+                arrayOf(Calendars._ID, Calendars.ACCOUNT_NAME, Calendars.CALENDAR_DISPLAY_NAME),
+                null , null, null)
+
+        while (calendars.moveToNext()) {
+            Log.d("UsefulFace", "${calendars.getInt(0)}, " +
+                    "${calendars.getString(1)}, ${calendars.getString(2)}")
+            calendars.moveToNext()
         }
+        calendars.close()
+
+        val uriBuilder = Instances.CONTENT_URI.buildUpon()
+        ContentUris.appendId(uriBuilder, now.timeInMillis)
+        ContentUris.appendId(uriBuilder, now.timeInMillis + (3600_000 * 24 * 7))
+
+        val events = contentResolver.query(uriBuilder.build(),
+                arrayOf(Instances.TITLE, Instances.BEGIN, Instances.CALENDAR_DISPLAY_NAME),
+                "${Instances.CALENDAR_DISPLAY_NAME} in ('d_tolkach@indatalabs.com', 'chakmidlot@gmail.com')",
+                null, Instances.BEGIN)
+        Log.d("UsefulFace", events.columnNames.joinToString(", "))
+
+        while (events.moveToNext()) {
+            Log.d("UsefulFace", "${events.getLong(1)} ${events.getString(2)} ${events.getString(0)}")
+        }
+        events.close()
     }
 
     private fun readSmsBelinvest() {
@@ -165,6 +215,10 @@ class MainActivity : AppCompatActivity() {
             }
             124 -> if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 Log.d("UsefulFace", "ReadingSMS")
+            }
+            125 -> if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d("UsefulFace", "ReadingCalendar")
+                calendarData()
             }
             else {
                 // Permission Denied

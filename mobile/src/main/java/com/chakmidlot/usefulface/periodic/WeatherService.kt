@@ -28,11 +28,12 @@ class UrlLoader(val params: JobParameters, val service: JobService): Thread(){
 }
 
 private val weatherIcons = mapOf(
-        "пасмурно" to "⛅",
+        "пасмурно" to "☁",
         "пасмурно, кратковременный дождь" to "\uD83C\uDF27",
-        "ясно" to "\uD83C\uDF23",
+        "ясно" to "☀",
         "малооблачно" to "\uD83C\uDF24",
-        "облачно" to "⛅"
+        "облачно" to "⛅",
+        "пасмурно, снег" to "\uD83C\uDF28"
 )
 
 fun get_forecast(): String {

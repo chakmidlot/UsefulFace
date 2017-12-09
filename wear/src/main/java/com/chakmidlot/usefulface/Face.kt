@@ -120,7 +120,9 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
         override fun onVisibilityChanged(visible: Boolean) {
             super.onVisibilityChanged(visible)
 
+
             if (visible) {
+                data.updateVisible()
                 registerReceiver()
 
                 // Update time zone in case it changed while we weren't visible.
@@ -197,11 +199,8 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
         override fun onTapCommand(tapType: Int, x: Int, y: Int, eventTime: Long) {
             when (tapType) {
                 WatchFaceService.TAP_TYPE_TOUCH -> { }
-                WatchFaceService.TAP_TYPE_TOUCH_CANCEL -> { }
-                WatchFaceService.TAP_TYPE_TAP ->
-                    // The user has completed the tap gesture.
-                    // TODO: Add code to handle the tap gesture.
-                    data.touchUpdate(x, y)
+                WatchFaceService.TAP_TYPE_TOUCH_CANCEL -> data.touchUpdate(x, y, true)
+                WatchFaceService.TAP_TYPE_TAP -> data.touchUpdate(x, y, false)
             }// The user has started touching the screen.
             // The user has started a different gesture or otherwise cancelled the tap.
             invalidate()

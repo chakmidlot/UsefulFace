@@ -1,6 +1,7 @@
 package com.chakmidlot.usefulface
 
 import android.graphics.*
+import com.chakmidlot.usefulface.timer.FaceTimer
 
 class Drawing {
 
@@ -12,6 +13,7 @@ class Drawing {
     private val batteryPaint: Paint
     private val dataPaint: Paint
     private val dataPaintCenter: Paint
+    private val datePaintGrey: Paint
 
     init {
         hoursPaint = createTextPaint(Color.WHITE, 60f)
@@ -21,6 +23,7 @@ class Drawing {
         batteryPaint = createTextPaint(Color.WHITE, 17f)
         dataPaint = createTextPaint(Color.WHITE, 17f, true)
         dataPaintCenter = createTextPaint(Color.WHITE, 17f, true, true)
+        datePaintGrey = createTextPaint(Color.parseColor("#AAAAAA"), 17f, true)
     }
 
     fun draw(canvas: Canvas, bounds: Rect, data: DataStructure) {
@@ -34,6 +37,10 @@ class Drawing {
         drawSchedule(canvas, data.buses)
         drawVocabulary(canvas, data.vocabulary)
         drawWeather(canvas, data.weather)
+        drawStopwatch(canvas, data.stopwatch)
+        drawCalendar(canvas, data.events)
+
+        FaceTimer.draw(canvas)
     }
 
     fun drawWatch(canvas: Canvas, data: Time) {
@@ -49,7 +56,7 @@ class Drawing {
     }
 
     fun drawCurrency(canvas: Canvas, data: Currency) {
-        canvas.drawText(data.value, 0f, 150f, dataPaint)
+//        canvas.drawText(data.value, 0f, 150f, dataPaint)
     }
 
     fun drawBank(canvas: Canvas, data: List<Balance>) {
@@ -67,21 +74,40 @@ class Drawing {
     }
 
     fun drawWeather(canvas: Canvas, data: List<String>) {
-        data.forEachIndexed { index, s -> canvas.drawText(s, 250f, 150f + index * 20, dataPaint) }
+        data.forEachIndexed { index, s -> canvas.drawText(s, 250f, 180f + index * 20, dataPaint) }
     }
 
-    private fun createTextPaint(textColor: Int, textSize: Float, monoSpace: Boolean=false, center: Boolean=false): Paint {
-        val paint = Paint()
-        paint.color = textColor
-        paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
-        paint.isAntiAlias = true
-        paint.textSize = textSize
-        if (monoSpace) {
-            paint.typeface = Typeface.MONOSPACE
+    fun drawStopwatch(canvas: Canvas, data: Stopwatch) {
+        val paint = if (data.state == 1) {
+            dataPaint
         }
-        if (center) {
-            paint.textAlign = Paint.Align.CENTER
+        else {
+            datePaintGrey
         }
-        return paint
+        canvas.drawText(data.value, 230f, 150f, paint)
+    }
+
+    fun drawCalendar(canvas: Canvas, data: List<Pair<String, String>>) {
+        data.forEachIndexed { index, event ->
+            canvas.drawText("${event.first} ${event.second}",
+                    200f, 180f + index * 10, dataPaint)
+        }
+    }
+
+    companion object {
+        fun createTextPaint(textColor: Int, textSize: Float=10F, monoSpace: Boolean=false, center: Boolean=false): Paint {
+            val paint = Paint()
+            paint.color = textColor
+            paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            paint.isAntiAlias = true
+            paint.textSize = textSize
+            if (monoSpace) {
+                paint.typeface = Typeface.MONOSPACE
+            }
+            if (center) {
+                paint.textAlign = Paint.Align.CENTER
+            }
+            return paint
+        }
     }
 }
