@@ -3,7 +3,7 @@ package com.chakmidlot.usefulface
 import android.graphics.*
 import com.chakmidlot.usefulface.timer.FaceTimer
 
-class Drawing {
+class Drawing(private val timer: FaceTimer) {
 
     private val backgroundPaint: Paint = Paint(Color.BLACK)
     private val hoursPaint: Paint
@@ -40,7 +40,7 @@ class Drawing {
         drawStopwatch(canvas, data.stopwatch)
         drawCalendar(canvas, data.events)
 
-        FaceTimer.draw(canvas)
+        timer.draw(canvas)
     }
 
     fun drawWatch(canvas: Canvas, data: Time) {

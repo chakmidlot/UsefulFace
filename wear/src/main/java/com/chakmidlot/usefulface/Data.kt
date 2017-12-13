@@ -2,16 +2,21 @@ package com.chakmidlot.usefulface
 
 import android.Manifest
 import android.app.Activity
+import android.app.AlarmManager
 import android.app.Service
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.BatteryManager
+import android.os.Vibrator
 import android.provider.CalendarContract
 import android.support.v4.app.ActivityCompat
 import android.util.Log
 import com.chakmidlot.usefulface.english.Words
 import com.chakmidlot.usefulface.timer.FaceTimer
 import java.util.*
+import android.content.Context.ALARM_SERVICE
+
+
 
 
 data class Time (val hour_minute: String, val seconds: String,
@@ -25,7 +30,7 @@ data class DataStructure(val time: Time, val charge: List<Charge>,  val currency
                          val vocabulary: Pair<String, String>, val weather: List<String>,
                          val stopwatch: Stopwatch, val events: List<Pair<String, String>>)
 
-class Data(private val service: Service) {
+class Data(private val service: Service, private val timer: FaceTimer) {
 
     private val dayOfWeek = hashMapOf(
             1 to "SU",
@@ -82,7 +87,7 @@ class Data(private val service: Service) {
         if (x > 200 && y > 130 && y < 190) {
             clickStopwatch()
         }
-        FaceTimer.click(x, y, isLongTap)
+        timer.click(x, y, isLongTap)
     }
 
     fun updateVisible() {

@@ -34,6 +34,7 @@ import android.util.Log
 import android.view.SurfaceHolder
 import android.view.WindowInsets
 import android.widget.Toast
+import com.chakmidlot.usefulface.timer.FaceTimer
 import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
 
@@ -102,9 +103,10 @@ class Face : CanvasWatchFaceService(), GoogleApiClient.ConnectionCallbacks,
         override fun onCreate(holder: SurfaceHolder?) {
             super.onCreate(holder)
 
+            val timer = FaceTimer(this@Face)
             mCalendar = Calendar.getInstance()
-            data = Data(this@Face)
-            drawing = Drawing()
+            data = Data(this@Face, timer)
+            drawing = Drawing(timer)
 
             setWatchFaceStyle(WatchFaceStyle.Builder(this@Face)
                     .setAcceptsTapEvents(true)

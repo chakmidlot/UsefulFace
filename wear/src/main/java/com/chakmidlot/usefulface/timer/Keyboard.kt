@@ -7,7 +7,7 @@ import android.util.Log
 import com.chakmidlot.usefulface.Drawing
 
 
-class Keyboard(private val keyboardRect: List<Float>) {
+class Keyboard(private val keyboardRect: List<Float>, private val callback: FaceKeyboardCallback) {
 
     var timerNumbers = listOf(0, 0, 0, 5, 0, 0)
     private var timerValue = timerNumbers
@@ -47,13 +47,9 @@ class Keyboard(private val keyboardRect: List<Float>) {
 
     fun clickOk() {
         timerValue = timerNumbers
-        FaceTimer.timerSettingMillis =
-                (timerValue[0] * 10 + timerValue[1]) * 24 * 60_000 +
-                        (timerValue[2] * 10 + timerValue[3]) * 60_000 +
-                        (timerValue[4] * 10 + timerValue[5]) * 1000
-        Log.d("UsefulFace", "Timer set: ${FaceTimer.timerSettingMillis}")
-
-        FaceTimer.isMaximized = false
+        callback.setTimer((timerValue[0] * 10 + timerValue[1]) * 24 * 60_000L +
+                (timerValue[2] * 10 + timerValue[3]) * 60_000 +
+                (timerValue[4] * 10 + timerValue[5]) * 1000)
     }
 
     fun clickBackspace() {

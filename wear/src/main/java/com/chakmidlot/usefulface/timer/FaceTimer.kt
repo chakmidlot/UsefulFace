@@ -1,5 +1,10 @@
 package com.chakmidlot.usefulface.timer
 
+import android.app.AlarmManager
+import android.app.AlarmManager.RTC_WAKEUP
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -7,9 +12,12 @@ import android.os.Handler
 import android.util.Log
 import com.chakmidlot.usefulface.Drawing
 import com.chakmidlot.usefulface.Drawing.Companion.createTextPaint
+import android.content.Context.ALARM_SERVICE
+import android.content.Intent
+import android.os.Vibrator
 
 
-object FaceTimer {
+class FaceTimer(private val service: Service) : FaceKeyboardCallback {
 
     private var isCounting = false
     var isMaximized = false
@@ -25,17 +33,22 @@ object FaceTimer {
 
     private var keyboardRect = listOf(40f, 110f, 248f, 266f)
 
-    var timerSettingMillis = 0
+    var timerSettingMillis = 0L
 
-    private val keyboard = Keyboard(keyboardRect)
+    private val keyboard = Keyboard(keyboardRect, this)
 
-    private var handler: Handler
+    private val handler = Handler()
+
+    private val alarm = service.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    private val pendingIntent = PendingIntent.getService(
+            service, 0, Intent(service, Juj::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT)
+
 
     init {
         timerPaint = createTextPaint(Color.WHITE, 17f, true)
         timerPaint = createTextPaint(Color.WHITE, 17f, true)
         datePaintGrey = createTextPaint(Color.parseColor("#AAAAAA"), 17f, true)
-        handler = Handler()
     }
 
     fun click(x: Int, y: Int, longClick: Boolean = false) {
@@ -52,6 +65,7 @@ object FaceTimer {
         else {
             if (checkShortView(x, y)) {
                 if (longClick) {
+                    keyboard.openKeyboard()
                     isMaximized = true
                 }
                 else {
@@ -95,7 +109,7 @@ object FaceTimer {
                 "%02d:%02d:%02d".format(restTime / 3600, (restTime / 60) % 60, restTime % 60)
             }
             else {
-                "-%02d:%02d:%02d".format((-restTime + 1) / 3600, (-(restTime + 1) / 60) % 60, (-restTime + 1) % 60)
+                "-%02d:%02d:%02d".format(-restTime / 3600, -(restTime / 60).rem(60), -restTime.rem(60))
             }
 
             canvas.drawText(restTimeString, x, y, timerPaint)
@@ -107,7 +121,7 @@ object FaceTimer {
                 "%02d:%02d:%02d".format(restTime / 3600, (restTime / 60) % 60, restTime % 60)
             }
             else {
-                "-%02d:%02d:%02d".format((-restTime + 1) / 3600, (-(restTime + 1) / 60) % 60, (-restTime + 1) % 60)
+                "-%02d:%02d:%02d".format(-restTime / 3600, -((restTime) / 60).rem(60), -restTime.rem(60))
             }
 
             canvas.drawText(restTimeString, x, y, datePaintGrey)
@@ -150,11 +164,12 @@ object FaceTimer {
 
     private fun startCounting() {
         countingStartTime = System.currentTimeMillis()
-        scheduleWibration()
+        scheduleVibration()
     }
 
     private fun stopCounting() {
         countingStopTime = System.currentTimeMillis()
+        alarm.cancel(pendingIntent)
     }
 
     fun checkShortView(x: Int, y: Int): Boolean {
@@ -166,12 +181,20 @@ object FaceTimer {
                 && y > keyboardRect[1] && y < keyboardRect[3])
     }
 
-    fun scheduleWibration() {
-        val r = object : Runnable {
-            override fun run() {
-                handler.postDelayed(this, 1000)
+    fun scheduleVibration() {
+        alarm.cancel(pendingIntent)
 
-            }
-        }
+        alarm.setExact(RTC_WAKEUP,
+                countingStartTime + timerSettingMillis,
+                pendingIntent)
+    }
+
+    override fun setTimer(time: Long) {
+        timerSettingMillis = time
+
+        Log.d("UsefulFace", "Timer set: ${timerSettingMillis}")
+
+        isMaximized = false
+        scheduleVibration()
     }
 }
